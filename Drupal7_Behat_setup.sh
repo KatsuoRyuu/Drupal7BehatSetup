@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #set -e
 
 if [ -e /.installed ]; then
@@ -9,141 +9,192 @@ if [ -e /.installed ]; then
   echo 'updating packages in composer'
   php composer.phar update
 else
+
+  DEFAULT_DIR=$( cd `dirname "$0"` ; pwd -P)'/../';
+  DEFAULT_YOURNAME="KatsuoRyuu";
+  DEFAULT_PROJECTNAME="cloudschool";
+  DEFAULT_ALIAS="cloudschool"
+  DEFAULT_COMPOSER_JSON_FILE="composer.json";
+  DEFAULT_BEHAT_YML="behat.yml"
+  DEFAULT_SELENIUM_RELEASE="http://selenium-release.storage.googleapis.com/2.42/selenium-server-standalone-2.42.1.jar"
+  FEATURE_CONTEXT="./features/bootstrap/FeatureContext.php";
+  
+  FEATURE_DIR="./features/en/";
+  
+  FEATURE_EXAMPLE_DIR="./features/en/example/";
+  FEATURE_EXAMPLE_A="./features/en/example/example-a.feature";
+  FEATURE_EXAMPLE_B="./features/en/example/example-c.feature";
+  FEATURE_EXAMPLE_C="./features/en/example/example-b.feature";
+  
+  echo '';
+  echo 'POST INSTALL INFORMATION';
+  echo '------------------------';
+  
+  echo "Composer need some information!"
+  read -p "Please enter your name[${DEFAULT_YOURNAME}]: " YOURNAME
+  read -p "Please enter Project name[${DEFAULT_PROJECTNAME}]: " PROJECTNAME
+  read -p "Please enter VHOST Alias[${DEFAULT_ALIAS}]: " ALIAS
+  echo "Default dir is: "${DEFAULT_DIR};
+  read -p "Please root path of the webdir[Enter for default]: " ROOT_DIR
+  echo "Default Selenium 2 URL "${DEFAULT_SELENIUM_RELEASE};
+  read -p "Please Selenium 2 URL[Enter for default]: " SELENIUM_RELEASE
+
+  
+  if [ "${YOURNAME}" = "" ]; then
+	echo "YOURNAME IS : "${DEFAULT_YOURNAME};
+	YOURNAME=${DEFAULT_YOURNAME};
+  fi;
+  
+  if [ "${PROJECTNAME}" = "" ]; then
+	echo "PROJECT NAME IS : "${DEFAULT_PROJECTNAME};
+	PROJECTNAME=${DEFAULT_PROJECTNAME};
+  fi;
+  
+  if [ "${ALIAS}" = "" ]; then
+	echo "SERVER ALIAS IS : "${DEFAULT_ALIAS};
+	ALIAS=${DEFAULT_ALIAS};
+  fi;
+  
+  if [ "${ROOT_DIR}" = "" ]; then
+	echo "HTTP ROOT DIR IS : "${DEFAULT_DIR};
+	ROOT_DIR=${DEFAULT_DIR};
+  fi;
+  
+  if [ "${SELENIUM_RELEASE}" = "" ]; then
+	echo "SELENIUM 2 URL IS : "${DEFAULT_SELENIUM_RELEASE};
+	SELENIUM_RELEASE=${DEFAULT_SELENIUM_RELEASE};
+  fi;
+
   echo ''
   echo 'INSTALLING'
-  echo '----------'
+  echo '------------------------';
 
   # Install Java, Firefox, Xvfb, and unzip
   #apt-get -y install openjdk-7-jre-headless firefox xvfb unzip
 
-  wget "http://selenium-release.storage.googleapis.com/2.42/selenium-server-standalone-2.42.1.jar"
+  wget ${SELENIUM_RELEASE}
   #mv selenium-server-standalone-2.42.1.jar /usr/local/bin
 
   echo "Installing composer"
   curl -sS https://getcomposer.org/installer | php
+
   
-  echo "Composer need some information!"
-  read -p "Please enter your name: " YOURNAME
-  read -p "Please enter Project name: " PROJECTNAME
-  read -p "Please enter VHOST Alias: " alias
-  default_dir=$( cd `dirname "$0"` ; pwd -P)'/../';
-  echo ${default_dir};
-  read -p "Please root path of the webdir: " root_dir
-  
-  echo "Inputting composer.json"
-  echo '{' > composer.json
-  echo '  "name": "'${YOURNAME}'/'${PROJECTNAME}'",' >> composer.json
-  echo '  "description": "'${PROJECTNAME}'",' >> composer.json
-  echo '  "require": {' >> composer.json
-  echo '    "behat/mink": "1.5.*@stable",' >> composer.json
-  echo '    "behat/mink-goutte-driver": "*",' >> composer.json
-  echo '    "behat/mink-selenium2-driver": "*",' >> composer.json
-  echo '    "drupal/drupal-extension": "*"' >> composer.json
-  echo '  }' >> composer.json
-  echo '}' >> composer.json
+  echo "Inputting composer.json";
+  echo -e '{'"\n"\
+          '"name": "KatsuoRyuu/cloudschool",'"\n"\
+          '  "description": "cloudschool",'"\n"\
+          '  "require": {'"\n"\
+          '    "behat/mink": "dev-master",'"\n"\
+          '    "behat/mink-extension": "dev-master",'"\n"\
+          '    "behat/mink-goutte-driver": "*",'"\n"\
+          '    "behat/mink-selenium2-driver": "*",'"\n"\
+          '    "drupal/drupal-extension": "*",'"\n"\
+          '    "phpunit/phpunit": "*",'"\n"\
+          '    "phpunit/phpunit-mock-objects": "dev-master"'"\n"\
+          '  }'"\n"\
+          '}' > ${DEFAULT_COMPOSER_JSON_FILE}
+
   
   php composer.phar self-update
   php composer.phar update
   
-  echo 'default:' > behat.yml
-  echo 'context:' >> behat.yml
-  echo '  class: "FeatureContext"' >> behat.yml
-  echo 'paths:' >> behat.yml
-  echo '  features: "features"' >> behat.yml
-  echo '  bootstrap: 'features/bootstrap'' >> behat.yml
-  echo 'extensions:' >> behat.yml
-  echo '  Behat\MinkExtension\Extension:' >> behat.yml
-  echo '    goutte: ~' >> behat.yml
-  echo '    javascript_session: selenium2' >> behat.yml
-  echo '    selenium2:' >> behat.yml
-  echo '      wd_host: http://'${alias}':4444/wd/hub' >> behat.yml
-  echo '    base_url: http://'${alias}'' >> behat.yml
-  echo '  Drupal\DrupalExtension\Extension:' >> behat.yml
-  echo '    blackbox: ~' >> behat.yml
-  echo '    api_driver: "drupal"' >> behat.yml
-  echo '    drupal:' >> behat.yml
-  
-  if [ "${root_dir}" = "" ]; then
-	echo "Defaulting to "${default_dir};
-	root_dir=${default_dir};
-  fi;
-  echo '      drupal_root: "'${root_dir}'"' >> behat.yml
-  # So that running `vagrant provision` doesn't redownload everything
-  
   ./vendor/bin/behat --init
+  
+  echo -e 'default:'"\n"\
+          '  context:'"\n"\
+          '    class: "FeatureContext"'"\n"\
+          '  paths:'"\n"\
+          '    features: "features"'"\n"\
+          '    bootstrap: features/bootstrap'"\n"\
+          '  extensions:'"\n"\
+          '    Behat\MinkExtension:'"\n"\
+          '      goutte: ~'"\n"\
+          '      javascript_session: selenium2'"\n"\
+          '      default_session: selenium2'"\n"\
+          '      browser_name: 'firefox''"\n"\
+          '      selenium2:'"\n"\
+          '        wd_host: http://cloudschool:4444/wd/hub'"\n"\
+          '        base_url: http://cloudschool/'"\n"\
+          '        capabilities: {"browser": "firefox", "version": "21"}'"\n"\
+          '    Drupal\DrupalExtension\Extension:'"\n"\
+          '      blackbox: ~'"\n"\
+          '      api_driver: "drupal"'"\n"\
+          '      drupal:'"\n"\
+          '        drupal_root: "'${ROOT_DIR}'"' > ${DEFAULT_BEHAT_YML}
+  
+
   ./vendor/bin/behat -dl
   ./vendor/bin/behat
   
-  mkdir -p ./features/default/
+  mkdir -p ${FEATURE_EXAMPLE_DIR}
   
-  echo 'Feature: Content Management' 										 > ./features/default/default-a.feature
-  echo '  When I log into the website' 										>> ./features/default/default-a.feature
-  echo '  As an administrator' 												>> ./features/default/default-a.feature
-  echo '  I should be able to create, edit, and delete page content' 		>> ./features/default/default-a.feature
-  echo ''																	>> ./features/default/default-a.feature
-  echo '  Scenario: An administrative user should be able create page content' >> ./features/default/default-a.feature
-  echo '    Given I am logged in as a user with the "administrator" role' 	>> ./features/default/default-a.feature
-  echo '    When I go to "node/add/page"' 									>> ./features/default/default-a.feature
-  echo '    Then I should not see "Access denied"' 							>> ./features/default/default-a.feature
+  echo "Writing Example A";
   
-  echo 'Feature: Content Management' 										 > ./features/default/default-b.feature
-  echo '  When I log into the website' 										>> ./features/default/default-b.feature
-  echo '  As an administrator' 												>> ./features/default/default-b.feature
-  echo '  I should be able to create, edit, and delete page content' 		>> ./features/default/default-b.feature
-  echo '' 																	>> ./features/default/default-b.feature
-  echo '  Scenario: An administrative user should be able create page content' >> ./features/default/default-b.feature
-  echo '    Given I am logged in as a user with the "administrator" role' 	>> ./features/default/default-b.feature
-  echo '    When I go to "node/add/page"' 									>> ./features/default/default-b.feature
-  echo '    Then I should not see "Access denied"' 							>> ./features/default/default-b.feature
-  echo '' 																	>> ./features/default/default-b.feature
-  echo '  Scenario: An administrator should be able to edit page content' 	>> ./features/default/default-b.feature
-  echo '    Given "page" nodes:' 											>> ./features/default/default-b.feature
-  echo '      | title      | body          | status  |' 					>> ./features/default/default-b.feature
-  echo '      | Test page  | test content  | 1       |' 					>> ./features/default/default-b.feature
-  echo '    When I go to "admin/content"' 									>> ./features/default/default-b.feature
-  echo '    And I click "edit" in the "Test page" row' 						>> ./features/default/default-b.feature
-  echo '    Then I should not see "Access denied"' 							>> ./features/default/default-b.feature
-  echo '' 																	>> ./features/default/default-b.feature
-  echo '  Scenario: An administrator should be able to delete page content' >> ./features/default/default-b.feature
-  echo '    Given "page" nodes:' 											>> ./features/default/default-b.feature
-  echo '      | title      | body          | status  |' 					>> ./features/default/default-b.feature
-  echo '      | Test page  | test content  | 1       |' 					>> ./features/default/default-b.feature
-  echo '    When I go to "admin/content"' 									>> ./features/default/default-b.feature
-  echo '    And I click "delete" in the "Test page" row' 					>> ./features/default/default-b.feature
-  echo '    Then I should not see "Access denied"' 							>> ./features/default/default-b.feature
+  echo -e 'Feature: Content Management'"\n"\
+          '  When I log into the website'"\n"\
+          '  As an administrator'"\n"\
+          '  I should be able to create, edit, and delete page content'"\n"\
+          ''"\n"\
+          '  Scenario: An administrative user should be able create page content'"\n"\
+          '    Given I am logged in as a user with the "administrator" role'"\n"\
+          '    When I go to "node/add/page"'"\n"\
+          '    Then I should not see "Access denied"' > ${FEATURE_EXAMPLE_A}
   
-  ./vendor/bin/behat
+  echo "Writing Example B";
   
-  FEATURE_CONTEXT="./features/bootstrap/FeatureContext.php";
-  
-  echo '<?php' 																 > ${FEATURE_CONTEXT};
-  echo '' 																	>> ${FEATURE_CONTEXT};
-  echo 'use Behat\Behat\Context\Context;' 									>> ${FEATURE_CONTEXT};
-  echo 'use Behat\Behat\Context\SnippetAcceptingContext;' 					>> ${FEATURE_CONTEXT};
-  echo 'use Behat\Behat\Tester\Exception\PendingException;' 				>> ${FEATURE_CONTEXT};
-  echo 'use Behat\Gherkin\Node\PyStringNode;' 								>> ${FEATURE_CONTEXT};
-  echo 'use Behat\Gherkin\Node\TableNode;' 									>> ${FEATURE_CONTEXT};
-  echo '' 																	>> ${FEATURE_CONTEXT};
-  echo '/**' 																>> ${FEATURE_CONTEXT};
-  echo ' * Defines application features from the specific context.' 		>> ${FEATURE_CONTEXT};
-  echo ' */' 																>> ${FEATURE_CONTEXT};
-  echo 'class FeatureContext implements Context, SnippetAcceptingContext' 	>> ${FEATURE_CONTEXT};
-  echo '{' 																	>> ${FEATURE_CONTEXT};
-  echo '    /**' 															>> ${FEATURE_CONTEXT};
-  echo '     * Initializes context.' 										>> ${FEATURE_CONTEXT};
-  echo '     *' 															>> ${FEATURE_CONTEXT};
-  echo '     * Every scenario gets its own context instance.' 				>> ${FEATURE_CONTEXT};
-  echo '     * You can also pass arbitrary arguments to the' 				>> ${FEATURE_CONTEXT};
-  echo '     * context constructor through behat.yml.' 						>> ${FEATURE_CONTEXT};
-  echo '     */' 															>> ${FEATURE_CONTEXT};
-  echo '    public function __construct()' 									>> ${FEATURE_CONTEXT};
-  echo '    {' 																>> ${FEATURE_CONTEXT};
-  echo '    }' 																>> ${FEATURE_CONTEXT};
-  echo '' 																	>> ${FEATURE_CONTEXT};
-  echo '}' 																	>> ${FEATURE_CONTEXT};
+  echo -e 'Feature: Content Management'"\n"\
+          '  When I log into the website'"\n"\
+          '  As an administrator'"\n"\
+          '  I should be able to create, edit, and delete page content'"\n"\
+          ''"\n"\
+          '  Scenario: An administrative user should be able create page content'"\n"\
+          '    Given I am logged in as a user with the "administrator" role'"\n"\
+          '    When I go to "node/add/page"'"\n"\
+          '    Then I should not see "Access denied"'"\n"\
+          ''"\n"\
+          '  Scenario: An administrator should be able to edit page content'"\n"\
+          '    Given "page" nodes:'"\n"\
+          '      | title      | body          | status  |'"\n"\
+          '      | Test page  | test content  | 1       |'"\n"\
+          '    When I go to "admin/content"'"\n"\
+          '    And I click "edit" in the "Test page" row'"\n"\
+          '    Then I should not see "Access denied"' > ${FEATURE_EXAMPLE_B}
+      
+  echo "Writing Example C";
+      
+  echo -e 'Feature: Visit Google and search'"\n"\
+          ''"\n"\
+          'Scenario: Run a search for Behat'"\n"\
+          '    Given I am on "http://google.com/?complete=0"'"\n"\
+          '    When I fill in "lst-ib" with "Behat"'"\n"\
+          '    And I press "Google Search"' > ${FEATURE_EXAMPLE_C}
 
+  echo -e '<?php'"\n"\
+          ''"\n"\
+          'require_once(GuiContext.php);'"\n"\
+          ''"\n"\
+          '/**'"\n"\
+          ' * Defines application features from the specific context.'"\n"\		
+          ' */'"\n"\
+          'class FeatureContext implements Context, SnippetAcceptingContext'"\n"\
+          '{'"\n"\
+          '    /**'"\n"\
+          '     * Initializes context.'"\n"\
+          '     *'"\n"\
+          '     * Every scenario gets its own context instance.'"\n"\
+          '     * You can also pass arbitrary arguments to the'"\n"\
+          '     * context constructor through behat.yml.'"\n"\
+          '     */'"\n"\
+          '    public function __construct()'"\n"\
+          '    {'"\n"\
+          '    }'"\n"\
+          ''"\n"\
+          ''"\n"\
+          '}' > ${FEATURE_CONTEXT};
+
+  ./vendor/bin/behat --append-snippets
   
-  touch /.installed
+  touch ./.installed
 fi
 
 
