@@ -1,7 +1,7 @@
 #!/bin/bash
 #set -e
 
-RUN_PROFILES=("default")
+RUN_PROFILES=("default" "firefox" "chrome")
 
 
 if [ -e /.installed ]; then
@@ -13,13 +13,15 @@ if [ -e /.installed ]; then
   php composer.phar update
 else
 
-  DEFAULT_DIR=$( cd `dirname "$0"` ; pwd -P)'/../';
+  DEFAULT_DIR=$( cd `dirname "$0"` ; cd ../ ; pwd -P);
+  THIS_DIR=$( cd `dirname "$0"` ; pwd -P);
   DEFAULT_YOURNAME="KatsuoRyuu";
   DEFAULT_PROJECTNAME="cloudschool";
   DEFAULT_ALIAS="localhost"
   DEFAULT_COMPOSER_JSON_FILE="composer.json";
   DEFAULT_BEHAT_YML="behat.yml"
   DEFAULT_SELENIUM_RELEASE="http://selenium-release.storage.googleapis.com/2.44/selenium-server-standalone-2.44.0.jar"
+  DEFAULT_SELENIUM_SAFARI_WEBDRIVER="http://central.maven.org/maven2/org/seleniumhq/selenium/selenium-safari-driver/2.44.0/selenium-safari-driver-2.44.0.jar"
   FEATURE_CONTEXT="./features/bootstrap/FeatureContext.php";  
   FEATURE_DIR="./features/en/";
   FEATURE_EXAMPLE_DIR="./features/en/example/";
@@ -55,7 +57,26 @@ else
   read -p "Please root path of the webdir[Enter for default]: " ROOT_DIR
   echo "Default Selenium 2 URL "${DEFAULT_SELENIUM_RELEASE};
   read -p "Please Selenium 2 URL[Enter for default]: " SELENIUM_RELEASE
+  read -p "Do you want to run with safari webdriver for mac osx[N/y]: " SAFARI_WEBDRIVER
 
+  if [ "${SAFARI_WEBDRIVER}" = "y" ]; then 
+    echo "Webdriver URL:";
+    echo ${DEFAULT_SELENIUM_SAFARI_WEBDRIVER}
+    read -p "Please enter URL[Enter for default]: " SELENIUM_SAFARI_WEBDRIVER;
+    if [ "${SELENIUM_SAFARI_WEBDRIVER}" = "" ]; then
+      SELENIUM_SAFARI_WEBDRIVER=${DEFAULT_SELENIUM_SAFARI_WEBDRIVER}
+    fi;
+    echo "Downloading...";
+    wget ${SELENIUM_SAFARI_WEBDRIVER};
+    echo '';
+    echo 'NOTE:';
+    echo '--------------';
+    echo 'Goto the behat directory and unzip the safari webdriver';
+    echo 'then go to {safari_webdriver_folder}/org/openqa/selenium/safari/';
+    echo 'double click on the SafariDriver.safariextz file to install';
+    echo 'the safari extension';
+    read -p "Press ENTER to continue."
+  fi;  
   
   if [ "${YOURNAME}" = "" ]; then
 	echo "YOURNAME IS : "${DEFAULT_YOURNAME};
@@ -82,6 +103,7 @@ else
 	SELENIUM_RELEASE=${DEFAULT_SELENIUM_RELEASE};
   fi;
 
+  clear
   echo ''
   echo 'INSTALLING'
   echo '------------------------';
@@ -119,7 +141,7 @@ else
   for PROFILE in "${YML_PROFILES[@]}"
   do
 
-    echo -e ''${PROFILE[0]}':'"\n"\
+    echo -e ''${PROFILE[${PROFILE}][0]}':'"\n"\
             '  suites:'"\n"\
             '    default:'"\n"\
             '      contexts:'"\n"\
@@ -139,9 +161,9 @@ else
             '      javascript_session: selenium2'"\n"\
             '      selenium2: '"\n"\
             '        wd_host: http://'${ALIAS}':4444/wd/hub'"\n"\
-            '        capabilities: { "browser": "'"${PROFILE[1]}"'", "browserName": "'${PROFILE[2]}'" }'"\n"\
+            '        capabilities: { "browser": "'"${PROFILE[${PROFILE}][1]}"'", "browserName": "'${PROFILE[${PROFILE}][2]}'" }'"\n"\
             '      base_url: http://localhost'"\n"\
-            '      browser_name: '${PROFILE[1]}"\n"\
+            '      browser_name: '${PROFILE[${PROFILE}][1]}"\n"\
             '      base_url: http://'${ALIAS}"\n"\
             '    Drupal\DrupalExtension:'"\n"\
             '      blackbox: ~'"\n"\
@@ -247,3 +269,31 @@ for PROFILE in "${RUN_PROFILES[@]}"
 do
   ./vendor/bin/behat --profile ${PROFILE}
 done
+
+clear
+echo '';
+echo 'Creating test scripts';
+echo '---------------------';
+echo ''
+
+TEST_SCRIPT_PROFILES='';
+for PROFILE in "${RUN_PROFILES[@]}"
+do
+  TEST_SCRIPT_PROFILES=`echo ${TEST_SCRIPT_PROFILES} '"'${PROFILE}'"'`;
+done
+
+rm -Rf behat.sh
+
+echo -e '#!/bin/bash'"\n"\
+        ''"\n"\
+        'PROFILES=('${TEST_SCRIPT_PROFILES}');'"\n"\
+        ''"\n"\
+        'cd '${THIS_DIR}"\n"\
+        ''"\n"\
+        'for PROFILE in "${PROFILES[@]}"'"\n"\
+        'do'"\n"\
+        '  ./vendor/bin/behat --profile ${PROFILE}'"\n"\
+        'done' > behat.sh
+echo 'Making the behat.sh executable';
+chmod ug+x behat.sh
+echo 'To do the tests run ./behat.sh in this archive'
