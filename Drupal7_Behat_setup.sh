@@ -22,6 +22,7 @@ else
   DEFAULT_BEHAT_YML="behat.yml"
   DEFAULT_SELENIUM_RELEASE="http://selenium-release.storage.googleapis.com/2.44/selenium-server-standalone-2.44.0.jar"
   DEFAULT_SELENIUM_SAFARI_WEBDRIVER="http://central.maven.org/maven2/org/seleniumhq/selenium/selenium-safari-driver/2.44.0/selenium-safari-driver-2.44.0.jar"
+  DEFAULT_SELENIUM_CHROME_WEBDRIVER="http://chromedriver.storage.googleapis.com/2.9/chromedriver_mac32.zip";
   FEATURE_CONTEXT="./features/bootstrap/FeatureContext.php";  
   FEATURE_DIR="./features/en/";
   FEATURE_EXAMPLE_DIR="./features/en/example/";
@@ -58,6 +59,8 @@ else
   echo "Default Selenium 2 URL "${DEFAULT_SELENIUM_RELEASE};
   read -p "Please Selenium 2 URL[Enter for default]: " SELENIUM_RELEASE
   read -p "Do you want to run with safari webdriver for mac osx[N/y]: " SAFARI_WEBDRIVER
+  read -p "Do you want to install the chrome driver[N/y]: " INSTALL_CHROME_DRIVER
+  
 
   if [ "${SAFARI_WEBDRIVER}" = "y" ]; then 
     echo "Webdriver URL:";
@@ -77,6 +80,18 @@ else
     echo 'the safari extension';
     read -p "Press ENTER to continue."
   fi;  
+  
+  if [ "${INSTALL_CHROME_DRIVER}" = "y" ]; then
+        echo "Chrome Driver ${DEFAULT_SELENIUM_CHROME_WEBDRIVER}";
+        read -p "Please enter chrome driver URL[Enter for default]: " CHROME_DRIVER
+        if [ "${CHROME_DRIVER}" = "" ]; then
+            echo "Selenium chrome driver URL: "${DEFAULT_SELENIUM_CHROME_WEBDRIVER};
+            CHROME_DRIVER=${DEFAULT_SELENIUM_CHROME_WEBDRIVER};
+            CHROME_WEBDRIVER_PARAMETERS="-Dwebdriver.chrome.driver=\"./chromedriver\""
+        fi;
+        wget ${CHROME_DRIVER} -O chromedriver.zip;
+        unzip -o chromedriver.zip
+  fi;
   
   if [ "${YOURNAME}" = "" ]; then
 	echo "YOURNAME IS : "${DEFAULT_YOURNAME};
@@ -258,7 +273,7 @@ fi;
 RUNNING_SELENIUM=`ps a | grep selenium-server-standalone | grep java`
 if [ "${RUNNING_SELENIUM}" = "" ]; then  
   echo "Starting selenium server as a daemon by using SCREEN";
-  screen -d -m -L java -jar ./selenium-server-standalone.jar;
+  screen -d -m -L java -jar ./selenium-server-standalone.jar ${CHROME_WEBDRIVER_PARAMETERS} -Dwebdriver.safari.driver="./safaridriver";
 else
   echo "Selenium2 is running"
 fi;
@@ -287,7 +302,14 @@ rm -Rf behat.sh
 echo -e '#!/bin/bash'"\n"\
         ''"\n"\
         'PROFILES=('${TEST_SCRIPT_PROFILES}');'"\n"\
-        ''"\n"\
+        'CHROME_WEBDRIVER_PARAMETERS="'${CHROME_WEBDRIVER_PARAMETERS}'"'"\n"\
+        'RUNNING_SELENIUM=`ps a | grep selenium-server-standalone | grep java`'"\n"\
+        'if [ "${RUNNING_SELENIUM}" = "" ]; then  '"\n"\
+        '  echo "Starting selenium server as a daemon by using SCREEN";'"\n"\
+        '  screen -d -m -L java -jar ./selenium-server-standalone.jar '${CHROME_WEBDRIVER_PARAMETERS}';'"\n"\
+        'else'"\n"\
+        '  echo "Selenium2 is running"'"\n"\
+        'fi;'"\n"\
         'cd '${THIS_DIR}"\n"\
         ''"\n"\
         'for PROFILE in "${PROFILES[@]}"'"\n"\
@@ -297,3 +319,6 @@ echo -e '#!/bin/bash'"\n"\
 echo 'Making the behat.sh executable';
 chmod ug+x behat.sh
 echo 'To do the tests run ./behat.sh in this archive'
+
+echo 'If chrome is missing the webdriver on OSX run:';
+echo 'brew install chromedriver';
