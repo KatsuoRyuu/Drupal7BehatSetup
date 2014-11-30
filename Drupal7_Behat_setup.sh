@@ -1,6 +1,9 @@
 #!/bin/bash
 #set -e
 
+RUN_PROFILES=("default")
+
+
 if [ -e /.installed ]; then
   echo 'Already installed.'
   echo 'Checking for composer updates'
@@ -13,18 +16,32 @@ else
   DEFAULT_DIR=$( cd `dirname "$0"` ; pwd -P)'/../';
   DEFAULT_YOURNAME="KatsuoRyuu";
   DEFAULT_PROJECTNAME="cloudschool";
-  DEFAULT_ALIAS="cloudschool"
+  DEFAULT_ALIAS="localhost"
   DEFAULT_COMPOSER_JSON_FILE="composer.json";
   DEFAULT_BEHAT_YML="behat.yml"
-  DEFAULT_SELENIUM_RELEASE="http://selenium-release.storage.googleapis.com/2.42/selenium-server-standalone-2.42.1.jar"
-  FEATURE_CONTEXT="./features/bootstrap/FeatureContext.php";
-  
+  DEFAULT_SELENIUM_RELEASE="http://selenium-release.storage.googleapis.com/2.44/selenium-server-standalone-2.44.0.jar"
+  FEATURE_CONTEXT="./features/bootstrap/FeatureContext.php";  
   FEATURE_DIR="./features/en/";
-  
   FEATURE_EXAMPLE_DIR="./features/en/example/";
   FEATURE_EXAMPLE_A="./features/en/example/example-a.feature";
   FEATURE_EXAMPLE_B="./features/en/example/example-c.feature";
   FEATURE_EXAMPLE_C="./features/en/example/example-b.feature";
+
+  DEFAULT_PROFILE[0]="default"; 
+  DEFAULT_PROFILE[1]="firefox"; 
+  DEFAULT_PROFILE[2]="firefox";
+  YML_PROFILES[0]=${DEFAULT_PROFILE};
+ 
+  
+  FIREFOX_PROFILE[0]="firefox"; 
+  FIREFOX_PROFILE[1]="firefox"; 
+  FIREFOX_PROFILE[2]="firefox";
+  YML_PROFILES[1]=${FIREFOX_PROFILE};
+  
+  CHROME_PROFILE[0]="chrome"; 
+  CHROME_PROFILE[1]="googlechrome"; 
+  CHROME_PROFILE[2]="chrome";
+  YML_PROFILES[2]=${CHROME_PROFILE};
   
   echo '';
   echo 'POST INSTALL INFORMATION';
@@ -72,7 +89,7 @@ else
   # Install Java, Firefox, Xvfb, and unzip
   #apt-get -y install openjdk-7-jre-headless firefox xvfb unzip
 
-  wget ${SELENIUM_RELEASE}
+  wget ${SELENIUM_RELEASE} -O selenium-server-standalone.jar
   #mv selenium-server-standalone-2.42.1.jar /usr/local/bin
 
   echo "Installing composer"
@@ -94,51 +111,67 @@ else
           '  }'"\n"\
           '}' > ${DEFAULT_COMPOSER_JSON_FILE}
 
-  
   php composer.phar self-update
   php composer.phar update
   
-  ./vendor/bin/behat --init
-  
-  echo -e 'default:'"\n"\
-          '  context:'"\n"\
-          '    class: "FeatureContext"'"\n"\
-          '  paths:'"\n"\
-          '    features: "features"'"\n"\
-          '    bootstrap: features/bootstrap'"\n"\
-          '  extensions:'"\n"\
-          '    Behat\MinkExtension:'"\n"\
-          '      goutte: ~'"\n"\
-          '      javascript_session: selenium2'"\n"\
-          '      default_session: selenium2'"\n"\
-          '      browser_name: 'firefox''"\n"\
-          '      selenium2:'"\n"\
-          '        wd_host: http://cloudschool:4444/wd/hub'"\n"\
-          '        base_url: http://cloudschool/'"\n"\
-          '        capabilities: {"browser": "firefox", "version": "21"}'"\n"\
-          '    Drupal\DrupalExtension\Extension:'"\n"\
-          '      blackbox: ~'"\n"\
-          '      api_driver: "drupal"'"\n"\
-          '      drupal:'"\n"\
-          '        drupal_root: "'${ROOT_DIR}'"' > ${DEFAULT_BEHAT_YML}
-  
+  rm ${DEFAULT_BEHAT_YML}
 
-  ./vendor/bin/behat -dl
-  ./vendor/bin/behat
+  for PROFILE in "${YML_PROFILES[@]}"
+  do
+
+    echo -e ''${PROFILE[0]}':'"\n"\
+            '  suites:'"\n"\
+            '    default:'"\n"\
+            '      contexts:'"\n"\
+            '        - FeatureContext'"\n"\
+            '        - Drupal\DrupalExtension\Context\DrupalContext'"\n"\
+            '        - Drupal\DrupalExtension\Context\MinkContext'"\n"\
+            '        - Drupal\DrupalExtension\Context\MessageContext'"\n"\
+            '        - Drupal\DrupalExtension\Context\DrushContext'"\n"\
+            '        - Drupal\DrupalExtension\Context\MarkupContext'"\n"\
+            '        - Drupal\DrupalExtension\Context\RawDrupalContext'"\n"\
+            '      paths:'"\n"\
+            '        features: "features"'"\n"\
+            '        bootstrap: "features/bootstrap"'"\n"\
+            '  extensions:'"\n"\
+            '    Behat\MinkExtension:'"\n"\
+            '      goutte: ~'"\n"\
+            '      javascript_session: selenium2'"\n"\
+            '      selenium2: '"\n"\
+            '        wd_host: http://'${ALIAS}':4444/wd/hub'"\n"\
+            '        capabilities: { "browser": "'"${PROFILE[1]}"'", "browserName": "'${PROFILE[2]}'" }'"\n"\
+            '      base_url: http://localhost'"\n"\
+            '      browser_name: '${PROFILE[1]}"\n"\
+            '      base_url: http://'${ALIAS}"\n"\
+            '    Drupal\DrupalExtension:'"\n"\
+            '      blackbox: ~'"\n"\
+            '      api_driver: "drupal"'"\n"\
+            '      drupal:'"\n"\
+            '        drupal_root: "'${ROOT_DIR}'"'"\n"\
+            '' >> ${DEFAULT_BEHAT_YML}
+  done
+
   
   mkdir -p ${FEATURE_EXAMPLE_DIR}
   
   echo "Writing Example A";
   
-  echo -e 'Feature: Content Management'"\n"\
-          '  When I log into the website'"\n"\
-          '  As an administrator'"\n"\
-          '  I should be able to create, edit, and delete page content'"\n"\
+  echo -e 'Feature: Drupal.org search'"\n"\
+          '  In order to find modules on Drupal.org'"\n"\
+          '  As a Drupal user'"\n"\
+          '  I need to be able to use Drupal.org search'"\n"\
           ''"\n"\
-          '  Scenario: An administrative user should be able create page content'"\n"\
-          '    Given I am logged in as a user with the "administrator" role'"\n"\
-          '    When I go to "node/add/page"'"\n"\
-          '    Then I should not see "Access denied"' > ${FEATURE_EXAMPLE_A}
+          '  @javascript'"\n"\
+          '  Scenario: Searching for "behat"'"\n"\
+          '    Given I go to "https://drupal.org"'"\n"\
+          '    Given I fill in "Behat Drupal Extension" for "search_block_form"'"\n"\
+          '    Given I press "op"'"\n"\
+          '    Then I should see "Behat Drupal Extension"'"\n"\
+          ''"\n"\
+          '  @javascript'"\n"\
+          '  Scenario: Searching for "behat"'"\n"\
+          '    Given I go to "http://docs.behat.org/en/v2.5/"'"\n"\
+          '    Then I should see "behat documentation"' > ${FEATURE_EXAMPLE_A}
   
   echo "Writing Example B";
   
@@ -171,34 +204,46 @@ else
 
   echo -e '<?php'"\n"\
           ''"\n"\
-          'require_once(GuiContext.php);'"\n"\
+          'use Drupal\DrupalExtension\Context\RawDrupalContext;'"\n"\
+          'use Behat\Behat\Context\SnippetAcceptingContext;'"\n"\
+          'use Behat\Gherkin\Node\PyStringNode;'"\n"\
+          'use Behat\Gherkin\Node\TableNode;'"\n"\
           ''"\n"\
           '/**'"\n"\
-          ' * Defines application features from the specific context.'"\n"\		
+          ' * Defines application features from the specific context.'"\n"\
           ' */'"\n"\
-          'class FeatureContext implements Context, SnippetAcceptingContext'"\n"\
-          '{'"\n"\
-          '    /**'"\n"\
-          '     * Initializes context.'"\n"\
-          '     *'"\n"\
-          '     * Every scenario gets its own context instance.'"\n"\
-          '     * You can also pass arbitrary arguments to the'"\n"\
-          '     * context constructor through behat.yml.'"\n"\
-          '     */'"\n"\
-          '    public function __construct()'"\n"\
-          '    {'"\n"\
-          '    }'"\n"\
+          'class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext {'"\n"\
           ''"\n"\
+          '  /**'"\n"\
+          '   * Initializes context.'"\n"\
+          '   *'"\n"\
+          '   * Every scenario gets its own context instance.'"\n"\
+          '   * You can also pass arbitrary arguments to the'"\n"\
+          '   * context constructor through behat.yml.'"\n"\
+          '   */'"\n"\
+          '  public function __construct() {'"\n"\
+          '  }'"\n"\
           ''"\n"\
           '}' > ${FEATURE_CONTEXT};
 
+  ./vendor/bin/behat --init
+  ./vendor/bin/behat -dl
   ./vendor/bin/behat --append-snippets
   
   touch ./.installed
-fi
+fi;
 
+RUNNING_SELENIUM=`ps a | grep selenium-server-standalone | grep java`
+if [ "${RUNNING_SELENIUM}" = "" ]; then  
+  echo "Starting selenium server as a daemon by using SCREEN";
+  screen -d -m -L java -jar ./selenium-server-standalone.jar;
+else
+  echo "Selenium2 is running"
+fi;
 
-echo "Starting Selenium Server. Default screen resolution: 1280x1024."
-java -jar ./selenium-server-standalone-2.42.1.jar &
+echo 'Running tests';
 
-echo "Give Selenium Server a few minutes to fireup, then run your BDD tests."
+for PROFILE in "${RUN_PROFILES[@]}"
+do
+  ./vendor/bin/behat --profile ${PROFILE}
+done
