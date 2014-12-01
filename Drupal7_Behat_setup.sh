@@ -87,8 +87,8 @@ else
         if [ "${CHROME_DRIVER}" = "" ]; then
             echo "Selenium chrome driver URL: "${DEFAULT_SELENIUM_CHROME_WEBDRIVER};
             CHROME_DRIVER=${DEFAULT_SELENIUM_CHROME_WEBDRIVER};
-            CHROME_WEBDRIVER_PARAMETERS="-Dwebdriver.chrome.driver=\"./chromedriver\""
         fi;
+        CHROME_WEBDRIVER_PARAMETERS="-Dwebdriver.chrome.driver=./chromedriver";
         wget ${CHROME_DRIVER} -O chromedriver.zip;
         unzip -o chromedriver.zip
   fi;
@@ -273,7 +273,7 @@ fi;
 RUNNING_SELENIUM=`ps a | grep selenium-server-standalone | grep java`
 if [ "${RUNNING_SELENIUM}" = "" ]; then  
   echo "Starting selenium server as a daemon by using SCREEN";
-  screen -d -m -L java -jar ./selenium-server-standalone.jar ${CHROME_WEBDRIVER_PARAMETERS} -Dwebdriver.safari.driver="./safaridriver";
+  screen -d -m -L java -jar ./selenium-server-standalone.jar ${CHROME_WEBDRIVER_PARAMETERS};
 else
   echo "Selenium2 is running"
 fi;
@@ -319,6 +319,3 @@ echo -e '#!/bin/bash'"\n"\
 echo 'Making the behat.sh executable';
 chmod ug+x behat.sh
 echo 'To do the tests run ./behat.sh in this archive'
-
-echo 'If chrome is missing the webdriver on OSX run:';
-echo 'brew install chromedriver';
